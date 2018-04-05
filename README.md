@@ -4,7 +4,7 @@ LEMP (Linux, NGINX, MySQL, PHP)
 Requirements
 ------------
 ```
-CentOS 7
+Debian 8-9
 Ubuntu 16.04
 Ansible 2.0
 ```
@@ -12,12 +12,12 @@ Ansible 2.0
 Example Playbook
 ----------------
 
-Including an example of how to use your role (for instance, with variables passed in as parameters) is always nice for users too:
+How to use your role:
 ```
-- hosts: Test
-  become_user: root
+---
+- hosts: all
   roles:
-    - ../../lemp-stack
+    - { role: lemp }
 ```
 License
 -------
@@ -26,4 +26,4 @@ MIT
 
 Author Information
 ------------------
-@vidojeg
+@nikonorovi
