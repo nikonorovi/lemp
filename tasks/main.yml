@@ -1,0 +1,132 @@
+---
+
+#- name: "FIX: Debian/Ubuntu if doesn't come with certain modules, required by ansible"
+#  raw: apt-get install python-minimal aptitude -y
+#- name: Update apt cache
+#  apt: update_cache=yes
+#- name: Upgrade
+#  apt:
+#     upgrade: yes      
+
+# Ubuntu 16.04 
+# install requirements
+- name: Requirement package
+  become: yes
+  apt:
+    name: '{{ item }}'
+    state: latest
+  with_items:
+    - python-mysqldb
+
+#
+#   NGINX
+#
+
+# install ngnix
+- name: Install Nginx
+  become: yes
+  apt:
+    name: nginx
+    state: present
+  tags:
+    - nginx
+    
+# config nginx
+- name: Remove default config 
+  file: 
+    path=/etc/nginx/sites-enabled/default
+    state=absent
+    
+- name: Config Nginx
+  become: yes
+  template:
+    src: nginx.conf.j2
+    dest: /etc/nginx/sites-available/nginx.conf
+    mode: 0644
+  notify:
+    - Restart Nginx
+  tags:
+    - nginx
+
+# linking to enable
+- name: Linking new site
+  become: yes
+  file:
+    src: /etc/nginx/sites-available/nginx.conf
+    dest: /etc/nginx/sites-enabled/nginx.conf
+    state: link
+  tags:
+    - nginx
+#
+#   MySQL
+#
+
+# install mysql
+- name: Install MySQL
+  become: yes
+  apt:
+    name: mysql-server
+    state: present
+  tags:
+    - php
+
+# config mysql
+- name: Sets the root password
+  become: yes 
+  mysql_user: 
+    login_user: root 
+    login_password: "{{ mysql_root_password }}" 
+    host: localhost 
+    check_implicit_admin: yes
+    name: root
+    password: "{{ mysql_root_password }}"
+    priv: '*.*:ALL,GRANT'
+  tags:
+    - php
+
+- name: Deletes anonymous MySQL server user for localhost
+  become: yes
+  mysql_user: 
+    login_user: root 
+    login_password: "{{ mysql_root_password }}" 
+    host: localhost 
+    check_implicit_admin: yes
+    name: ""
+    state: "absent"
+  tags:
+    - php
+
+- name: remove the MySQL test database
+  become: yes
+  action: mysql_db login_user=root login_password="{{ mysql_root_password }}" db=test state=absent
+  tags:
+    - php
+
+# install php
+- name: Install PHP
+  become: yes
+  apt:
+    name: '{{ item }}'
+    state: latest
+  with_items:
+    - php-fpm
+    - php-mysql
+  tags:
+    - php
+
+# config php
+- name: Config PHP
+  become: yes
+  template: 
+    src: php.ini.j2
+    dest: /etc/php/7.0/fpm/php.ini
+    mode: 0644
+  notify:
+    - Restart Nginx
+    - Restart php-fpm
+  tags:
+    - php
+- name: Add info.php
+  template:
+    src=info.php
+    dest=/usr/share/nginx/html/info.php
